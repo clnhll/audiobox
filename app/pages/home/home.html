@@ -1,0 +1,58 @@
+<ion-header class="opaque" class="statusbar-gap">
+  <ion-toolbar no-border-bottom></ion-toolbar>
+</ion-header>
+
+<ion-content fullscreen class="home" [ngStyle]="{'background-image': as.nowPlayingSongMeta && as.nowPlayingSongMeta.picture ?
+'url(\'' + as.nowPlayingSongMeta?.picture + '\')' : ''}">
+<ion-toolbar no-border-top no-border-bottom>
+  <ion-searchbar
+    [(ngModel)]="as.filterQuery"
+    [showCancelButton]="true"
+    (ionInput)="as.filterQueue($event)"
+    (ionCancel)="as.clearFilter($event)">
+  </ion-searchbar>
+</ion-toolbar>
+<ion-card>
+  <ion-card-content no-padding>
+  <ion-list>
+  <button ion-item no-lines [ngClass]="{'playing-in-list': as.nowPlayingSong && as.nowPlayingSong.path === song.path}" *ngFor="let song of as.songs" (click)="playSong(song, true)">
+    <h3>{{song.title}}</h3>
+    <p>{{song.path}}</p>
+  </button>
+</ion-list>
+</ion-card-content>
+</ion-card>
+  <ion-item no-lines class="blank-space">
+    <ion-thumbnail item-left><img /></ion-thumbnail>
+  </ion-item>
+  <ion-item no-lines class="blank-space"></ion-item>
+</ion-content>
+<ion-footer *ngIf="as.nowPlayingSongMeta">
+  <ion-footer class="home outer-footer">
+    <div class="inner-footer">
+    <ion-item no-lines>
+      <ion-thumbnail item-left>
+        <a light (click)="goToNowPlaying()">
+          <img *ngIf="as.nowPlayingSongMeta.picture" [src]="as.nowPlayingSongMeta.picture">
+          <ion-icon *ngIf="!as.nowPlayingSongMeta || !as.nowPlayingSongMeta.picture" name="musical-notes" class="placeholder-art"></ion-icon>
+        </a>
+
+      </ion-thumbnail>
+      <h2><a (click)="goToNowPlaying()" dark>{{as.nowPlayingSongMeta.title}}</a></h2>
+      <a (click)="goToNowPlaying()" dark><p>{{as.nowPlayingSongMeta.artist}}</p>
+        <p>{{as.nowPlayingSongMeta.album}}</p></a>
+      <button small clear item-right (click)="as.back()"><ion-icon name="skip-backward"></ion-icon></button>
+      <button small clear item-right (click)="as.playPause()"><ion-icon [name]="as.playing ? 'pause' : 'play'"></ion-icon></button>
+      <button small clear item-right (click)="as.playNextSong()"><ion-icon name="skip-forward"></ion-icon></button>
+
+    </ion-item>
+    <ion-item no-lines>
+      <ion-range no-padding min="0" [max]="as.duration" step="1" [ngModel]="as.currentTime"
+        (ngModelChange)="as.updateTime($event)">
+        <span range-left class="time-text">{{as.formatTime(as.currentTime)}}</span>
+        <span range-right class="time-text">{{as.formatTime(as.duration)}}</span>
+      </ion-range>
+    </ion-item>
+  </div>
+  </ion-footer>
+</ion-footer>

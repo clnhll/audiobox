@@ -1,0 +1,106 @@
+::-webkit-scrollbar, *::-webkit-scrollbar {
+  display: none;
+}
+.statusbar-gap {
+  height: 20px !important;
+  ion-toolbar {
+    height: 20px !important;
+    min-height: 0px !important;
+    padding-top: 0px !important;
+    .toolbar-background {
+      -webkit-backdrop-filter: blur(20px);
+      background-color: rgba(255,255,255, .2);
+      height: 20px;
+    }
+  }
+}
+.opaque {
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+}
+.home {
+    ion-toolbar {
+      .toolbar-background {
+        background: transparent;
+        // background-color: rgba(255,255,255,.3);
+      }
+
+  }
+}
+.opaque .toolbar-background {
+  // background-color: rgba(#f8f8f8, 0.55);
+}
+ion-footer.home.outer-footer {
+  background-color: rgba(255,255,255,.5);
+  background-size:150%;
+  background-position: center;
+}
+.home {
+  background-size: 200% !important;
+  background-position: center !important;
+  scroll-content {
+    backdrop-filter: saturate(180%) blur(20px);
+    background: rgba(255,255,255,.5);
+  }
+  .time-text {
+    width: 4.5ch;
+    color: #3D81F2;
+    font-size: 10pt;
+  }
+  .playing-in-list {
+    background-color: #eee !important;
+    font-weight: bold;
+    h3 {
+      font-weight: bold;
+    }
+  }
+  background: #f8f8f8;
+  button.item {
+    background: transparent;
+    // color: white;
+    p {
+      // color: #ccc;
+    }
+  }
+  .blank-space {
+    padding-top: 12px;
+    background: transparent;
+  }
+    .inner-footer {
+      background: rgba(255,255,255,.3);
+      backdrop-filter: saturate(180%) blur(20px);
+      ion-item {
+        background: transparent;
+        // color: #fff;
+        ion-label {
+          margin-right: 0px;
+          p {
+            text-overflow: ellipsis;
+            overflow: hidden;
+          }
+        }
+        .placeholder-art {
+          font-size: 40pt;
+          text-align: center;
+          transform: translateX(-50%);
+          left: 50%;
+          // top: 50%;
+          // transform: translateY(-50%);
+          position: relative;
+          display: block;
+          width: 56px;
+          height: 56px;
+          color: #999;
+        }
+        p {
+          // color: #ddd;
+        }
+        [item-right] {
+          // color: white;
+          margin: 0 -2px;
+          font-size: 12pt;
+        }
+      }
+
+  }
+}
