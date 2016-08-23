@@ -47,7 +47,7 @@
 
     </ion-item>
     <ion-item no-lines>
-      <ion-range no-padding min="0" [max]="as.duration" step="1" [ngModel]="as.currentTime"
+      <ion-range no-padding min="0" [max]="as.duration" [ngModel]="as.currentTime"
         (ngModelChange)="as.updateTime($event)">
         <span range-left class="time-text">{{as.formatTime(as.currentTime)}}</span>
         <span range-right class="time-text">{{as.formatTime(as.duration)}}</span>

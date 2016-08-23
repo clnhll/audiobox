@@ -18,6 +18,7 @@ export class AudioService {
   private bufferedMetadata: any;
   public songsBackup = [];
   private queue = [];
+  private queueBackup = [];
   public shuffle: boolean = localStorage.getItem('shuffle') ?
     JSON.parse(localStorage.getItem('shuffle')) :
     false;
@@ -35,12 +36,12 @@ export class AudioService {
   public checkInterval: any;
   public filterQuery: string = '';
   private bufferedSongUrl: string;
+  public onSongChange: any = () => {};
   constructor(private platform: Platform) {
     if (!this.nowPlaying) {
       this.authenticate()
         .then(this.getAllSongs.bind(this))
         .then(this.play.bind(this));
-
     }
 
     platform.ready().then(() => {
@@ -139,6 +140,7 @@ export class AudioService {
       if (this.repeatOne) {
         this.nowPlaying.currentTime = 0;
         this.nowPlaying.play();
+        this.onSongChange();
       } else {
         this.playNextSong();
       }
@@ -172,7 +174,9 @@ export class AudioService {
       this.playSong(nextSong);
     }
   }
-
+  canGoBack() {
+    return this.nowPlayingIndex > 0;
+  }
   canPlayNextSong() {
     return this.nowPlayingIndex !== this.queue.length - 1 || this.repeatAll;
   }
@@ -181,12 +185,14 @@ export class AudioService {
   }
   toggleShuffle() {
     this.shuffle = !this.shuffle;
-    this.queue = this.shuffle ? this.shuffleSongs() : this.songs;
-    this.nowPlayingIndex = -1;
-    delete this.bufferedSong;
-    delete this.bufferedSongInfo
-    this.bufferNext();
     localStorage.setItem('shuffle', JSON.stringify(this.shuffle));
+    this.queue = this.shuffle ? this.shuffleSongs() : this.songs;
+    delete this.bufferedSong;
+    delete this.bufferedSongInfo;
+    delete this.bufferedSongUrl;
+    delete this.bufferedMetadata;
+    this.nowPlayingIndex = this.queue.indexOf(this.nowPlayingSong);
+    this.bufferNext();
   }
   pause() {
     this.nowPlaying.pause();
@@ -202,12 +208,12 @@ export class AudioService {
     if (this.nowPlaying.currentTime > 5) {
       this.nowPlaying.currentTime = 0;
     } else {
-      this.nowPlayingIndex -= 1;
-      if (this.nowPlayingIndex > -1) this.playSong(this.queue[this.nowPlayingIndex]);
-      else {
+      if (this.canGoBack()) {
+        this.nowPlayingIndex -= 1;
+        this.playSong(this.queue[this.nowPlayingIndex]);
+      } else {
         this.nowPlaying.pause();
-        delete this.nowPlaying;
-        delete this.nowPlayingSong;
+        this.nowPlaying.currentTime = 0;
       }
     }
   }
@@ -239,16 +245,21 @@ export class AudioService {
     this.nowPlayingSongMeta = this.bufferedMetadata;
     this.setLockScreenInfo(this.nowPlayingSongMeta);
     this.nowPlaying.play();
+    this.onSongChange();
     this.bufferNext();
   }
   playPause() {
     if (this.playing) {
       this.nowPlaying.pause();
-      this.setLockScreenInfo(this.nowPlayingSongMeta);
+      setTimeout(() =>{
+        this.setLockScreenInfo(this.nowPlayingSongMeta, true);
+      }, 0)
       this.playing = false;
     } else {
       this.play();
-      this.setLockScreenInfo(this.nowPlayingSongMeta);
+      setTimeout(() =>{
+        this.setLockScreenInfo(this.nowPlayingSongMeta);
+      }, 0)
     }
   }
   shuffleSongs () {
@@ -274,15 +285,18 @@ export class AudioService {
     if (!event.target.value || event.target.value === '') {
       this.clearFilter();
     } else {
-      let filteredSongs = this.songs.filter(song =>
+      let filteredSongs = this.songsBackup.filter(song =>
         song.path.toLowerCase().includes(event.target.value.toLowerCase()));
       this.nowPlayingIndex = filteredSongs.indexOf(this.nowPlayingSong);
+      this.queue = this.queueBackup.filter(song =>
+        song.path.toLowerCase().includes(event.target.value.toLowerCase()));
       this.songs = filteredSongs;
     }
   }
   clearFilter() {
     this.songs = this.songsBackup;
-    this.nowPlayingIndex = this.songs.indexOf(this.nowPlayingSong);
+    this.queue = this.queueBackup;
+    this.nowPlayingIndex = this.queue.indexOf(this.nowPlayingSong);
   }
   setUpTimeTracking() {
     if (this.checkInterval) {
@@ -293,13 +307,21 @@ export class AudioService {
         this.playing = !this.nowPlaying.paused;
         this.currentTime = this.nowPlaying.currentTime;
         this.duration = this.nowPlaying.duration;
+        if ((<any>window).plugins && this.nowPlayingSongMeta) {
+          let meta = this.nowPlayingSongMeta;
+          let options = {
+            playbackDuration: this.duration,
+            elapsedPlaybackTime: this.currentTime,
+            playbackRate: this.playing ? 1 : 0,
+            albumTitle: meta.album,
+            artist: meta.artist,
+            title: meta.title,
+          }
+          Object.assign(options, meta.picture ? {artwork: meta.picture} : {});
+          NowPlaying.set(options);
+        }
       }
-      if ((<any>window).plugins) {
-        NowPlaying.set({
-          playbackDuration: this.duration,
-          elapsedPlaybackTime: this.currentTime,
-        });
-      }
+
 
     }, 1000)
   }
@@ -386,16 +408,18 @@ export class AudioService {
 
     plugins.socialsharing.shareWithOptions(options, onSuccess, onError);
   }
-  setLockScreenInfo(meta) {
+  setLockScreenInfo(meta, paused = false) {
     if (!(<any>window).plugins) return;
     let options = {
       albumTitle: meta.album,
       artist: meta.artist,
-      title: meta.title
+      title: meta.title,
+      playbackRate: paused ? 0 : 1,
     };
     if (meta.picture) {
       (<any>options).artwork = meta.picture;
     }
     NowPlaying.set(options);
   }
+
 }

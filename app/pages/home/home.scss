@@ -1,6 +1,9 @@
 ::-webkit-scrollbar, *::-webkit-scrollbar {
   display: none;
 }
+.range-knob-handle {
+  transition: linear 1s all
+}
 .statusbar-gap {
   height: 20px !important;
   ion-toolbar {
