@@ -1,8 +1,47 @@
+@-webkit-keyframes zoomOut {
+  from {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+    -webkit-transform: scale3d(.3, .3, .3);
+    transform: scale3d(.3, .3, .3);
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+.flash-play, .flash-paused {
+    background: rgba(255,255,255,.4);
+    backdrop-filter: blur(20px) saturate(180%);
+    border-radius: 5px;
+    width: 100%;
+    height: calc(100vw - 24px);
+    -webkit-animation: zoomOut 3s forwards;
+    animation: zoomOut 3s forwards;
+    display: block;
+    position: relative;
+    margin-bottom: calc(-100vw + 24px);
+    font-size: 200pt;
+    color: #444;
+    text-align: center;
+    ion-icon {
+      display: block;
+      position: relative;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+}
 .now-playing {
   scroll-content {
     overflow-y: hidden;
     padding-top: 0 !important;
   }
+
+
+
   background-size: 200%;
   background-position: center;
   .inner-nowplaying {

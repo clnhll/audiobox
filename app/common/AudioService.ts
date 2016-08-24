@@ -156,6 +156,7 @@ export class AudioService {
     this.setUpTimeTracking()
     this.getMeta(url);
     this.nowPlayingSongUrl = url;
+    this.onSongChange();
   }
 
   playNextSong() {
@@ -200,6 +201,7 @@ export class AudioService {
   play() {
     if (this.nowPlaying) {
       this.nowPlaying.play();
+      this.playing = true;
     } else {
       this.playNextSong();
     }
@@ -247,6 +249,7 @@ export class AudioService {
     this.nowPlaying.play();
     this.onSongChange();
     this.bufferNext();
+    this.onSongChange();
   }
   playPause() {
     if (this.playing) {

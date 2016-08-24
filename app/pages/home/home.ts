@@ -18,8 +18,8 @@ export class HomePage {
       as.onSongChange = (() => {
         setTimeout(() => {
           let itemLoc = (<any>document.querySelector('.playing-in-list')).offsetTop;
-          this.content.scrollTo(0, itemLoc - 100);
-        }, 100)
+          this.content.scrollTo(0, itemLoc - 100, 1000);
+        }, 200)
 
       });
   }

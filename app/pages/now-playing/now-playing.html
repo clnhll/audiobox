@@ -5,8 +5,14 @@
   <button fab fab-bottom fab-center (click)="as.shareSong()"><ion-icon name="share-outline"></ion-icon></button>
 
   <ion-card>
-  <ion-icon *ngIf="!as.nowPlayingSongMeta || !as.nowPlayingSongMeta.picture" name="musical-notes" class="placeholder-art"></ion-icon>
-  <img *ngIf="as.nowPlayingSongMeta && as.nowPlayingSongMeta.picture" [src]="as.nowPlayingSongMeta.picture"/>
+    <a (click)="as.playPause()">
+      <div *ngIf="!as.playing" class='flash-paused'><ion-icon name="pause"></ion-icon></div>
+      <div *ngIf="as.playing" class='flash-play'><ion-icon name="play"></ion-icon></div>
+      <ion-icon *ngIf="!as.nowPlayingSongMeta || !as.nowPlayingSongMeta.picture"
+        name="musical-notes" class="placeholder-art"></ion-icon>
+      <img *ngIf="as.nowPlayingSongMeta && as.nowPlayingSongMeta.picture"
+        [src]="as.nowPlayingSongMeta.picture"/>
+    </a>
   <ion-item class="progress-range" no-lines>
     <ion-range min="0" [max]="as.duration" [ngModel]="as.currentTime"
       (ngModelChange)="as.updateTime($event)">
