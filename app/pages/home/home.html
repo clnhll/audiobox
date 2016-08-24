@@ -2,8 +2,8 @@
   <ion-toolbar no-border-bottom></ion-toolbar>
 </ion-header>
 
-<ion-content fullscreen class="home" [ngStyle]="{'background-image': as.nowPlayingSongMeta && as.nowPlayingSongMeta.picture ?
-'url(\'' + as.nowPlayingSongMeta?.picture + '\')' : ''}">
+<ion-content fullscreen class="home" [ngStyle]="{'background-image': as.nowPlayingSongMeta && as.nowPlayingSongMeta.artwork ?
+'url(\'' + as.nowPlayingSongMeta?.artwork + '\')' : ''}">
 <ion-toolbar no-border-top no-border-bottom>
   <ion-searchbar
     [(ngModel)]="as.filterQuery"
@@ -33,14 +33,14 @@
     <ion-item no-lines>
       <ion-thumbnail item-left>
         <a light (click)="goToNowPlaying()">
-          <img *ngIf="as.nowPlayingSongMeta.picture" [src]="as.nowPlayingSongMeta.picture">
-          <ion-icon *ngIf="!as.nowPlayingSongMeta || !as.nowPlayingSongMeta.picture" name="musical-notes" class="placeholder-art"></ion-icon>
+          <img *ngIf="as.nowPlayingSongMeta.artwork" [src]="as.nowPlayingSongMeta.artwork">
+          <ion-icon *ngIf="!as.nowPlayingSongMeta || !as.nowPlayingSongMeta.artwork" name="musical-notes" class="placeholder-art"></ion-icon>
         </a>
 
       </ion-thumbnail>
       <h2><a (click)="goToNowPlaying()" dark>{{as.nowPlayingSongMeta.title}}</a></h2>
       <a (click)="goToNowPlaying()" dark><p>{{as.nowPlayingSongMeta.artist}}</p>
-        <p>{{as.nowPlayingSongMeta.album}}</p></a>
+        <p>{{as.nowPlayingSongMeta.albumTitle}}</p></a>
       <button small clear item-right (click)="as.back()"><ion-icon name="skip-backward"></ion-icon></button>
       <button small clear item-right (click)="as.playPause()"><ion-icon [name]="as.playing ? 'pause' : 'play'"></ion-icon></button>
       <button small clear item-right (click)="as.playNextSong()"><ion-icon name="skip-forward"></ion-icon></button>

@@ -40,8 +40,7 @@ export class AudioService {
   constructor(private platform: Platform) {
     if (!this.nowPlaying) {
       this.authenticate()
-        .then(this.getAllSongs.bind(this))
-        .then(this.play.bind(this));
+        .then(this.getAllSongs.bind(this));
     }
 
     platform.ready().then(() => {
@@ -157,6 +156,7 @@ export class AudioService {
     this.getMeta(url);
     this.nowPlayingSongUrl = url;
     this.onSongChange();
+    this.setLockScreenInfo(true);
   }
 
   playNextSong() {
@@ -202,6 +202,7 @@ export class AudioService {
     if (this.nowPlaying) {
       this.nowPlaying.play();
       this.playing = true;
+      this.setLockScreenInfo(true);
     } else {
       this.playNextSong();
     }
@@ -209,6 +210,7 @@ export class AudioService {
   back() {
     if (this.nowPlaying.currentTime > 5) {
       this.nowPlaying.currentTime = 0;
+      this.setLockScreenInfo(true);
     } else {
       if (this.canGoBack()) {
         this.nowPlayingIndex -= 1;
@@ -216,6 +218,7 @@ export class AudioService {
       } else {
         this.nowPlaying.pause();
         this.nowPlaying.currentTime = 0;
+        this.setLockScreenInfo(true);
       }
     }
   }
@@ -245,24 +248,19 @@ export class AudioService {
     delete this.bufferedSong;
     delete this.bufferedSongInfo;
     this.nowPlayingSongMeta = this.bufferedMetadata;
-    this.setLockScreenInfo(this.nowPlayingSongMeta);
     this.nowPlaying.play();
     this.onSongChange();
     this.bufferNext();
     this.onSongChange();
+    this.setLockScreenInfo(true);
   }
   playPause() {
     if (this.playing) {
       this.nowPlaying.pause();
-      setTimeout(() =>{
-        this.setLockScreenInfo(this.nowPlayingSongMeta, true);
-      }, 0)
+      this.setLockScreenInfo(true);
       this.playing = false;
     } else {
       this.play();
-      setTimeout(() =>{
-        this.setLockScreenInfo(this.nowPlayingSongMeta);
-      }, 0)
     }
   }
   shuffleSongs () {
@@ -310,20 +308,7 @@ export class AudioService {
         this.playing = !this.nowPlaying.paused;
         this.currentTime = this.nowPlaying.currentTime;
         this.duration = this.nowPlaying.duration;
-        if ((<any>window).plugins && this.nowPlayingSongMeta) {
-          let meta = this.nowPlayingSongMeta;
-          let options = {
-            playbackRate: this.playing ? 1 : 0,
-            albumTitle: meta.album,
-            artist: meta.artist,
-            title: meta.title,
-          }
-          Object.assign(options, meta.picture ? {artwork: meta.picture} : {});
-          NowPlaying.set(options);
-        }
       }
-
-
     }, 1000)
   }
   updateTime(x) {
@@ -339,13 +324,11 @@ export class AudioService {
   getMeta(url, isBuffer = false) {
     jsmediatags.read(url, {
       onSuccess: (tag) => {
-        let meta = {};
-        Object.assign(meta, {
+        let meta = {
           artist: tag.tags.artist ? tag.tags.artist : 'Unknown Artist',
-          album: tag.tags.album ? tag.tags.album : 'Unknown Album',
+          albumTitle: tag.tags.album ? tag.tags.album : 'Unknown Album',
           title: tag.tags.title ? tag.tags.title : (!isBuffer ? this.nowPlayingSong.title : this.bufferedSongInfo.title),
-          track: tag.tags.track ? tag.tags.track : 0
-        })
+        };
         if (tag.tags.picture) {
           let uInt8Array = tag.tags.picture.data;
           let i = uInt8Array.length;
@@ -355,22 +338,21 @@ export class AudioService {
             }
           let data = binaryString.join('');
           let base64 = 'data:image/png;base64,' + btoa(data);
-          Object.assign(meta, {picture: base64});
+          (<any>meta).artwork = base64;
         }
         if (isBuffer) {
           this.bufferedMetadata = meta;
         } else {
           this.nowPlayingSongMeta = meta;
-          this.setLockScreenInfo(meta);
+          this.setLockScreenInfo(true);
         }
 
       },
       onError: (error) => {
         let meta = {
           artist: 'Unknown Artist',
-          album: 'Unknown Album',
+          albumTitle: 'Unknown Album',
           title: !isBuffer ? this.nowPlayingSong.title : this.bufferedSongInfo.title,
-          track: 0
         }
         if (isBuffer) {
           this.bufferedMetadata = meta;
@@ -397,7 +379,7 @@ export class AudioService {
     var options = {
       message: `${this.nowPlayingSongMeta.title} by ${this.nowPlayingSongMeta.artist}`, // not supported on some apps (Facebook, Instagram)
       subject: `${this.nowPlayingSongMeta.title} by ${this.nowPlayingSongMeta.artist}`, // fi. for email
-      files: this.nowPlayingSongMeta.picture ? [this.nowPlayingSongMeta.picture] : [], // an array of filenames either locally or remotely
+      files: this.nowPlayingSongMeta.artwork ? [this.nowPlayingSongMeta.artwork] : [], // an array of filenames either locally or remotely
       url: this.nowPlayingSongUrl,
     }
 
@@ -409,18 +391,17 @@ export class AudioService {
 
     plugins.socialsharing.shareWithOptions(options, onSuccess, onError);
   }
-  setLockScreenInfo(meta, paused = false) {
-    if (!(<any>window).plugins) return;
-    let options = {
-      albumTitle: meta.album,
-      artist: meta.artist,
-      title: meta.title,
-      playbackRate: paused ? 0 : 1,
-    };
-    if (meta.picture) {
-      (<any>options).artwork = meta.picture;
-    }
-    NowPlaying.set(options);
+  setLockScreenInfo(setTime = false) {
+    console.log(this.nowPlayingSongMeta);
+    if (!(<any>window).plugins || !this.nowPlayingSongMeta) return;
+    NowPlaying.set(Object.assign(this.nowPlayingSongMeta, setTime ? {
+      elapsedPlaybackTime: this.nowPlaying.currentTime,
+      playbackDuration: this.nowPlaying.duration,
+      playbackRate: this.nowPlaying.paused ? 0 : 1
+    } : {
+      playbackRate: this.nowPlaying.paused ? 0 : 1
+    }));
+    console.log(this.nowPlayingSongMeta);
   }
 
 }

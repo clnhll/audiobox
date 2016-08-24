@@ -1,17 +1,17 @@
-<ion-content fullscreen class="now-playing" [ngStyle]="{'background-image': as.nowPlayingSongMeta && as.nowPlayingSongMeta.picture ?
-'url(\'' + as.nowPlayingSongMeta?.picture + '\')' : 'linear-gradient(to bottom, #444,#111), linear-gradient(to bottom right, #333, #555)'}">
+<ion-content fullscreen class="now-playing" [ngStyle]="{'background-image': as.nowPlayingSongMeta && as.nowPlayingSongMeta.artwork ?
+'url(\'' + as.nowPlayingSongMeta?.artwork + '\')' : 'linear-gradient(to bottom, #444,#111), linear-gradient(to bottom right, #333, #555)'}">
 <div class="inner-nowplaying">
   <button fab fab-bottom fab-right (click)="viewCtrl.dismiss()"><ion-icon name="arrow-down"></ion-icon></button>
   <button fab fab-bottom fab-center (click)="as.shareSong()"><ion-icon name="share-outline"></ion-icon></button>
 
   <ion-card>
-    <a (click)="as.playPause()">
-      <div *ngIf="!as.playing" class='flash-paused'><ion-icon name="pause"></ion-icon></div>
-      <div *ngIf="as.playing" class='flash-play'><ion-icon name="play"></ion-icon></div>
-      <ion-icon *ngIf="!as.nowPlayingSongMeta || !as.nowPlayingSongMeta.picture"
+    <a (click)="playPause()">
+      <div *ngIf="buttonPressed && !as.playing" class='flash-paused'><ion-icon name="pause"></ion-icon></div>
+      <div *ngIf="buttonPressed && as.playing" class='flash-play'><ion-icon name="play"></ion-icon></div>
+      <ion-icon *ngIf="!as.nowPlayingSongMeta || !as.nowPlayingSongMeta.artwork"
         name="musical-notes" class="placeholder-art"></ion-icon>
-      <img *ngIf="as.nowPlayingSongMeta && as.nowPlayingSongMeta.picture"
-        [src]="as.nowPlayingSongMeta.picture"/>
+      <img *ngIf="as.nowPlayingSongMeta && as.nowPlayingSongMeta.artwork"
+        [src]="as.nowPlayingSongMeta.artwork"/>
     </a>
   <ion-item class="progress-range" no-lines>
     <ion-range min="0" [max]="as.duration" [ngModel]="as.currentTime"
@@ -39,7 +39,7 @@
     </ion-card-title>
       <p>
         {{as.nowPlayingSongMeta ? as.nowPlayingSongMeta.artist : 'Unknown Artist'}} •
-        {{as.nowPlayingSongMeta ? as.nowPlayingSongMeta.album : 'Unknown Album'}}
+        {{as.nowPlayingSongMeta ? as.nowPlayingSongMeta.albumTitle : 'Unknown Album'}}
       </p>
   </ion-card-content>
   <ion-row no-padding>
@@ -47,7 +47,7 @@
       <button clear small (click)="as.back()"><ion-icon name="skip-backward"></ion-icon></button>
     </ion-col>
     <ion-col text-center>
-      <button clear small (click)="as.playPause()"><ion-icon [name]="as.playing ? 'pause' : 'play'"></ion-icon></button>
+      <button clear small (click)="playPause()"><ion-icon [name]="as.playing ? 'pause' : 'play'"></ion-icon></button>
     </ion-col>
     <ion-col text-right>
       <button clear small (click)="as.playNextSong()"><ion-icon name="skip-forward"></ion-icon></button>

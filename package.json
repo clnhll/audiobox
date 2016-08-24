@@ -42,7 +42,11 @@
     "cordova-plugin-compat",
     "cordova-plugin-inappbrowser",
     "cordova-plugin-x-socialsharing",
-    "cordova-plugin-remotecommand"
+    "cordova-plugin-remotecommand",
+    {
+      "locator": "cordova-plugin-nowplaying",
+      "id": "cordova-plugin-nowplaying"
+    }
   ],
   "cordovaPlatforms": [
     "ios",
