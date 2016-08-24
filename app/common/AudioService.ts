@@ -313,8 +313,6 @@ export class AudioService {
         if ((<any>window).plugins && this.nowPlayingSongMeta) {
           let meta = this.nowPlayingSongMeta;
           let options = {
-            playbackDuration: this.duration,
-            elapsedPlaybackTime: this.currentTime,
             playbackRate: this.playing ? 1 : 0,
             albumTitle: meta.album,
             artist: meta.artist,
