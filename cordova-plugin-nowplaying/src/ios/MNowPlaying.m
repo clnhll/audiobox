@@ -117,13 +117,6 @@
 }
 
 /**
- * Method to decode a base64 image
- */
-- (UIImage *)decodeBase64ToImage:(NSString *)strEncodeData {
-  NSData *data = [[NSData alloc]initWithBase64EncodedString:strEncodeData options:NSDataBase64DecodingIgnoreUnknownCharacters];
-  return [UIImage imageWithData:data];
-}
-/**
  * Will download the image in a background thread and set the appropiate key on nowPlayingInfo
  */
 - (void)setNowPlayingArtwork:(NSString*)url
@@ -133,13 +126,10 @@
         // check whether artwork path is present
         if (![url isEqual: @""]) {
             // artwork is url download from the interwebs
-            if ([url hasPrefix: @"http://"] || [url hasPrefix: @"https://"] || [url hasPrefix: @"data:"]) {
+            if ([url hasPrefix: @"http://"] || [url hasPrefix: @"https://"] || [url hasPrefix: @"data:/"]) {
                 NSURL *imageURL = [NSURL URLWithString:url];
                 NSData *imageData = [NSData dataWithContentsOfURL:imageURL];
                 image = [UIImage imageWithData:imageData];
-            } else if ([url hasPrefix: @"data:"]){
-              image = decodeBase64ToImage(url);
-              NSLog(@"I think this is base64\n");
             } else {
                 // artwork is local. so create it from a UIImage
                 NSString *basePath = [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) objectAtIndex:0];

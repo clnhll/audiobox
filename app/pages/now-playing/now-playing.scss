@@ -16,7 +16,7 @@
 .flash-play, .flash-paused {
     background: rgba(255,255,255,.4);
     backdrop-filter: blur(20px) saturate(180%);
-    border-radius: 5px;
+    border-radius: 15px;
     width: 100%;
     height: calc(100vw - 24px);
     -webkit-animation: zoomOut 3s forwards;
@@ -27,6 +27,7 @@
     font-size: 200pt;
     color: #444;
     text-align: center;
+    z-index: 1;
     ion-icon {
       display: block;
       position: relative;
