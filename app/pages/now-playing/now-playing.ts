@@ -22,7 +22,7 @@ export class NowPlaying {
     this.as.playPause();
     setTimeout(() => {
       this.buttonPressed = false;
-    }, 1000)
+    }, 3000)
   }
 
 }

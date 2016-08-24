@@ -1,27 +1,28 @@
-import {Injectable} from '@angular/core';
-import {Platform} from 'ionic-angular';
+import {Injectable, NgZone} from '@angular/core';
+import {Platform, LoadingController} from 'ionic-angular';
 declare var Dropbox: any;
 declare var cordova: any;
 declare var jsmediatags: any;
 declare var plugins: any;
 declare var NowPlaying: any;
 declare var RemoteCommand: any;
+
 @Injectable()
 export class AudioService {
+
   public nowPlaying: any;
   public bufferedSong: any;
   public currentTime: number;
   public duration: number;
   public playing: boolean = false;
-  private db;
-  public songs = [];
-  private bufferedMetadata: any;
-  public songsBackup = [];
-  private queue = [];
-  private queueBackup = [];
+  private db: any;
   public shuffle: boolean = localStorage.getItem('shuffle') ?
-    JSON.parse(localStorage.getItem('shuffle')) :
-    false;
+    JSON.parse(localStorage.getItem('shuffle')) : false;
+  public songs = localStorage.getItem('db-songs') ? JSON.parse(localStorage.getItem('db-songs')) : [];
+  private bufferedMetadata: any;
+  public songsBackup = [...this.songs];
+  private queue = this.shuffle ? this.shuffleSongs() : this.songs;
+  private queueBackup = [...this.queue];
   public repeatOne: boolean = localStorage.getItem('repeatOne') ?
     JSON.parse(localStorage.getItem('repeatOne')) :
     false;
@@ -37,27 +38,40 @@ export class AudioService {
   public filterQuery: string = '';
   private bufferedSongUrl: string;
   public onSongChange: any = () => {};
-  constructor(private platform: Platform) {
-    if (!this.nowPlaying) {
-      this.authenticate()
-        .then(this.getAllSongs.bind(this));
-    }
 
+  constructor(private platform: Platform, private zone: NgZone, private loadingCtrl: LoadingController) {
+    let loading: any = false;
+    if (!this.songs.length) {
+      loading = this.loadingCtrl.create({
+        content: 'Loading...'
+      });
+      loading.present();
+    }
+    // if (!this.nowPlaying) {
+    this.authenticate()
+      .then(this.getAllSongs.bind(this))
+      .then(() => {
+        if (loading) loading.dismiss();
+      });
+    // }
     platform.ready().then(() => {
+      if (!(<any>window).NowPlaying) {
+        Object.assign(window, {NowPlaying: {set: (obj) => console.log(obj)}});
+      }
       if (!(<any>window).plugins) return;
       RemoteCommand.on('command', (command) => {
+        this.zone.run(() => {
           ({
             'nextTrack': this.playNextSong.bind(this),
             'previousTrack': this.back.bind(this),
             'play': this.playPause.bind(this),
             'pause': this.playPause.bind(this)
           })[command]()
-
+        })
       });
-    })
-
-
+    });
   }
+
   authenticate() {
     return new Promise((resolve, reject) => {
       this.platform.ready().then(() => {
@@ -77,6 +91,7 @@ export class AudioService {
       });
     });
   }
+
   getAllSongs() {
     return Promise.all([
       new Promise((resolve, reject) => {
@@ -107,15 +122,17 @@ export class AudioService {
       return this.songs;
     });
   }
+
   formatSongs(res) {
     res = res.filter(song => song.isFile);
-    this.songs = this.songs.concat(res.map((song) => ({
+    this.setSongs(res.map((song) => ({
       title: song.path.split('/').reverse()[0].replace('.mp3', '').replace('.wav', '').replace('.m4a', ''),
       path: song.path,
       isFile: song.isFile
-    }))).sort((a, b) =>
-      a.path < b.path ? -1 : 1);
+    })));
+    this.songs = this.songs.sort((a, b) => a.path < b.path ? -1 : 1);
   }
+
   getSongUrl(song) {
     let path = song.path;
     return new Promise((resolve, reject) => {
@@ -125,7 +142,9 @@ export class AudioService {
       });
     });
   }
+
   playSong(song) {
+
     this.getSongUrl(song).then(this.playUrl.bind(this));
     this.nowPlayingSong = song;
     this.nowPlayingIndex = this.queue.indexOf(song);
@@ -133,9 +152,12 @@ export class AudioService {
   }
 
   playUrl(url) {
-    const x = new Audio;
-    x.src = url;
-    x.onended = () => {
+    if (this.nowPlaying) {
+      this.nowPlaying.pause();
+      delete this.nowPlaying;
+    }
+    this.nowPlaying = new Audio;
+    this.nowPlaying.onended = () => {
       if (this.repeatOne) {
         this.nowPlaying.currentTime = 0;
         this.nowPlaying.play();
@@ -144,19 +166,22 @@ export class AudioService {
         this.playNextSong();
       }
     }
-    x.onprogress = () => {
-      this.currentTime = this.nowPlaying.currentTime;
-    }
     if (this.nowPlaying) {
       this.nowPlaying.pause();
     }
-    x.play();
-    this.nowPlaying = x;
+    this.nowPlaying.onprogress = () => {
+      this.currentTime = this.nowPlaying.currentTime;
+    }
+    let metaPromise = this.getMeta(url);
+    this.nowPlaying.oncanplaythrough = () => {
+      this.nowPlaying.play();
+      metaPromise.then(this.setLockScreenInfo.bind(this));
+    }
+    this.nowPlaying.src = url;
+    this.nowPlaying.load();
     this.setUpTimeTracking()
-    this.getMeta(url);
     this.nowPlayingSongUrl = url;
     this.onSongChange();
-    this.setLockScreenInfo(true);
   }
 
   playNextSong() {
@@ -175,15 +200,19 @@ export class AudioService {
       this.playSong(nextSong);
     }
   }
+
   canGoBack() {
     return this.nowPlayingIndex > 0;
   }
+
   canPlayNextSong() {
     return this.nowPlayingIndex !== this.queue.length - 1 || this.repeatAll;
   }
+
   getNextSongToPlay() {
     return this.queue[this.nowPlayingIndex + 1];
   }
+
   toggleShuffle() {
     this.shuffle = !this.shuffle;
     localStorage.setItem('shuffle', JSON.stringify(this.shuffle));
@@ -195,22 +224,25 @@ export class AudioService {
     this.nowPlayingIndex = this.queue.indexOf(this.nowPlayingSong);
     this.bufferNext();
   }
+
   pause() {
     this.nowPlaying.pause();
   }
+
   play() {
     if (this.nowPlaying) {
       this.nowPlaying.play();
       this.playing = true;
-      this.setLockScreenInfo(true);
+      this.setLockScreenInfo();
     } else {
       this.playNextSong();
     }
   }
+
   back() {
     if (this.nowPlaying.currentTime > 5) {
       this.nowPlaying.currentTime = 0;
-      this.setLockScreenInfo(true);
+      this.setLockScreenInfo();
     } else {
       if (this.canGoBack()) {
         this.nowPlayingIndex -= 1;
@@ -218,10 +250,11 @@ export class AudioService {
       } else {
         this.nowPlaying.pause();
         this.nowPlaying.currentTime = 0;
-        this.setLockScreenInfo(true);
+        this.setLockScreenInfo();
       }
     }
   }
+
   bufferNext() {
     if (this.canPlayNextSong()) {
       this.bufferedSongInfo = this.getNextSongToPlay();
@@ -238,31 +271,47 @@ export class AudioService {
       delete this.bufferedSongInfo;
     }
   }
+
   playBufferedSong() {
-    this.nowPlaying.pause();
-    this.nowPlayingSongUrl = this.bufferedSongUrl;
-    delete this.nowPlaying;
-    this.nowPlaying = this.bufferedSong;
-    this.nowPlayingSong = this.bufferedSongInfo;
-    this.nowPlaying.onended = this.playNextSong.bind(this);
-    delete this.bufferedSong;
-    delete this.bufferedSongInfo;
-    this.nowPlayingSongMeta = this.bufferedMetadata;
-    this.nowPlaying.play();
-    this.onSongChange();
-    this.bufferNext();
-    this.onSongChange();
-    this.setLockScreenInfo(true);
+    this.zone.run(() => {
+      this.nowPlaying.pause();
+      this.nowPlayingSongUrl = this.bufferedSongUrl;
+      delete this.nowPlaying;
+      this.nowPlaying = this.bufferedSong;
+      this.nowPlayingSong = this.bufferedSongInfo;
+      this.nowPlaying.onended = this.playNextSong.bind(this);
+      this.nowPlaying.onprogress = () => {
+        this.currentTime = this.nowPlaying.currentTime;
+      }
+      delete this.bufferedSong;
+      delete this.bufferedSongInfo;
+      this.nowPlayingSongMeta = this.bufferedMetadata;
+      if (this.nowPlaying.readyState === 4) {
+        this.nowPlaying.play();
+        this.setLockScreenInfo();
+      } else {
+        this.nowPlaying.oncanplaythrough = () => {
+          this.nowPlaying.play();
+          this.setLockScreenInfo();
+        };
+      }
+      this.bufferNext();
+      this.onSongChange();
+      this.setUpTimeTracking()
+    })
+
   }
+
   playPause() {
     if (this.playing) {
       this.nowPlaying.pause();
-      this.setLockScreenInfo(true);
+      this.setLockScreenInfo();
       this.playing = false;
     } else {
       this.play();
     }
   }
+
   shuffleSongs () {
     let array = [...this.songs];
     var currentIndex = array.length, temporaryValue, randomIndex;
@@ -279,9 +328,9 @@ export class AudioService {
       array[currentIndex] = array[randomIndex];
       array[randomIndex] = temporaryValue;
     }
-
     return array;
   }
+
   filterQueue(event) {
     if (!event.target.value || event.target.value === '') {
       this.clearFilter();
@@ -294,11 +343,13 @@ export class AudioService {
       this.songs = filteredSongs;
     }
   }
+
   clearFilter() {
     this.songs = this.songsBackup;
     this.queue = this.queueBackup;
     this.nowPlayingIndex = this.queue.indexOf(this.nowPlayingSong);
   }
+
   setUpTimeTracking() {
     if (this.checkInterval) {
       clearInterval(this.checkInterval);
@@ -311,9 +362,16 @@ export class AudioService {
       }
     }, 1000)
   }
+
   updateTime(x) {
     this.nowPlaying.currentTime = x;
+    NowPlaying.set({
+      elapsedPlaybackTime: x,
+      playbackRate: this.nowPlaying.paused ? 0 : 1,
+      duration: this.nowPlaying.duration
+    });
   }
+
   formatTime(seconds): string {
     let sec = ((~~seconds) % 60).toString();
     if (sec.length === 1) {
@@ -321,47 +379,52 @@ export class AudioService {
     }
     return `${~~(seconds / 60)}:${sec}`
   }
-  getMeta(url, isBuffer = false) {
-    jsmediatags.read(url, {
-      onSuccess: (tag) => {
-        let meta = {
-          artist: tag.tags.artist ? tag.tags.artist : 'Unknown Artist',
-          albumTitle: tag.tags.album ? tag.tags.album : 'Unknown Album',
-          title: tag.tags.title ? tag.tags.title : (!isBuffer ? this.nowPlayingSong.title : this.bufferedSongInfo.title),
-        };
-        if (tag.tags.picture) {
-          let uInt8Array = tag.tags.picture.data;
-          let i = uInt8Array.length;
-          let binaryString = new Array(i);
-            while (i--) {
-              binaryString[i] = String.fromCharCode(uInt8Array[i]);
-            }
-          let data = binaryString.join('');
-          let base64 = 'data:image/png;base64,' + btoa(data);
-          (<any>meta).artwork = base64;
-        }
-        if (isBuffer) {
-          this.bufferedMetadata = meta;
-        } else {
-          this.nowPlayingSongMeta = meta;
-          this.setLockScreenInfo(true);
-        }
 
-      },
-      onError: (error) => {
-        let meta = {
-          artist: 'Unknown Artist',
-          albumTitle: 'Unknown Album',
-          title: !isBuffer ? this.nowPlayingSong.title : this.bufferedSongInfo.title,
+  getMeta(url, isBuffer = false) {
+    return new Promise((resolve, reject) => {
+      jsmediatags.read(url, {
+        onSuccess: (tag) => {
+          let meta = {
+            artist: tag.tags.artist ? tag.tags.artist : 'Unknown Artist',
+            albumTitle: tag.tags.album ? tag.tags.album : 'Unknown Album',
+            title: tag.tags.title ? tag.tags.title : (!isBuffer ? this.nowPlayingSong.title : this.bufferedSongInfo.title),
+          };
+          if (tag.tags.picture) {
+            let uInt8Array = tag.tags.picture.data;
+            let i = uInt8Array.length;
+            let binaryString = new Array(i);
+              while (i--) {
+                binaryString[i] = String.fromCharCode(uInt8Array[i]);
+              }
+            let data = binaryString.join('');
+            let base64 = 'data:image/png;base64,' + btoa(data);
+            (<any>meta).artwork = base64;
+          }
+          if (isBuffer) {
+            this.bufferedMetadata = meta;
+          } else {
+            this.nowPlayingSongMeta = meta;
+          }
+          resolve(meta);
+        },
+        onError: (error) => {
+          let meta = {
+            artist: 'Unknown Artist',
+            albumTitle: 'Unknown Album',
+            title: !isBuffer ? this.nowPlayingSong.title : this.bufferedSongInfo.title,
+          }
+          if (isBuffer) {
+            this.bufferedMetadata = meta;
+          } else {
+            this.nowPlayingSongMeta = meta;
+          }
+          resolve(meta);
         }
-        if (isBuffer) {
-          this.bufferedMetadata = meta;
-        } else {
-          this.nowPlayingSongMeta = meta;
-        }
-      }
+      });
     });
+
   }
+
   toggleRepeat() {
     if (this.repeatOne) {
       this.repeatOne = false;
@@ -374,14 +437,18 @@ export class AudioService {
     localStorage.setItem('repeatOne', JSON.stringify(this.repeatOne));
     localStorage.setItem('repeatAll', JSON.stringify(this.repeatAll));
   }
+
   shareSong() {
-    if (!cordova || !this.nowPlaying || !this.nowPlayingSongMeta.title) return;
     var options = {
       message: `${this.nowPlayingSongMeta.title} by ${this.nowPlayingSongMeta.artist}`, // not supported on some apps (Facebook, Instagram)
       subject: `${this.nowPlayingSongMeta.title} by ${this.nowPlayingSongMeta.artist}`, // fi. for email
       files: this.nowPlayingSongMeta.artwork ? [this.nowPlayingSongMeta.artwork] : [], // an array of filenames either locally or remotely
       url: this.nowPlayingSongUrl,
     }
+    if (!(<any>window).cordova || !this.nowPlaying || !this.nowPlayingSongMeta.title) {
+      console.log(options);
+      return
+    };
 
     var onSuccess = function(result) {
     }
@@ -391,17 +458,23 @@ export class AudioService {
 
     plugins.socialsharing.shareWithOptions(options, onSuccess, onError);
   }
-  setLockScreenInfo(setTime = false) {
-    console.log(this.nowPlayingSongMeta);
-    if (!(<any>window).plugins || !this.nowPlayingSongMeta) return;
-    NowPlaying.set(Object.assign(this.nowPlayingSongMeta, setTime ? {
-      elapsedPlaybackTime: this.nowPlaying.currentTime,
-      playbackDuration: this.nowPlaying.duration,
-      playbackRate: this.nowPlaying.paused ? 0 : 1
-    } : {
-      playbackRate: this.nowPlaying.paused ? 0 : 1
-    }));
-    console.log(this.nowPlayingSongMeta);
+
+  setLockScreenInfo() {
+    if (!this.nowPlayingSongMeta) return;
+    setTimeout(() => {
+      NowPlaying.set(Object.assign({
+        playbackRate: this.nowPlaying.paused ? 0 : 1,
+        elapsedPlaybackTime: this.nowPlaying.currentTime,
+        duration: this.nowPlaying.duration
+      }, this.nowPlayingSongMeta));
+    }, 500);
+  }
+
+  setSongs(newSongs) {
+    let paths = this.songs.map(s => s.path);
+    newSongs.forEach(song => {
+      if (!paths.includes(song.path)) this.songs.push(song)
+    });
   }
 
 }
