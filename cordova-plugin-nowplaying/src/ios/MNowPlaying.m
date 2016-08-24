@@ -126,7 +126,7 @@
         // check whether artwork path is present
         if (![url isEqual: @""]) {
             // artwork is url download from the interwebs
-            if ([url hasPrefix: @"http://"] || [url hasPrefix: @"https://"] || [url hasPrefix: @"data:/"]) {
+            if ([url hasPrefix: @"http://"] || [url hasPrefix: @"https://"] || [url hasPrefix: @"data:"]) {
                 NSURL *imageURL = [NSURL URLWithString:url];
                 NSData *imageData = [NSData dataWithContentsOfURL:imageURL];
                 image = [UIImage imageWithData:imageData];
