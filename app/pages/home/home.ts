@@ -1,4 +1,4 @@
-import {Component, ViewChild} from '@angular/core';
+import {Component, NgZone} from '@angular/core';
 import {NavController, Platform, ModalController, Content} from 'ionic-angular';
 import {AudioService} from '../../common/AudioService';
 import {NowPlaying} from '../now-playing/now-playing';
@@ -10,18 +10,41 @@ declare var Dropbox: any;
   templateUrl: 'build/pages/home/home.html'
 })
 export class HomePage {
-  @ViewChild(Content) content: Content;
+  private keyboardHeight: number = 0;
+  private easeInOutQuad: any = (t) =>  t<.5 ? 2*t*t : -1+(4-2*t)*t;
   constructor(private navCtrl: NavController,
     private platform: Platform,
     private as: AudioService,
-    private modalCtrl: ModalController) {
+    private modalCtrl: ModalController,
+    private zone: NgZone
+  ) {
       as.onSongChange = (() => {
         setTimeout(() => {
-          let itemLoc = (<any>document.querySelector('.playing-in-list')).offsetTop;
-          this.content.scrollTo(0, itemLoc - 100, 1000);
+          var target = document.querySelector(".playing-in-list");
+          this.scrollTo((<any>target).offsetTop - 100,
+            350, this.easeInOutQuad,() => {});
         }, 200)
 
       });
+      platform.ready().then(() => {
+        if ((<any>window).plugins) {
+          window.addEventListener('statusTap', () => {
+            this.scrollTo(0, 350,this.easeInOutQuad, () => {});
+          });
+          const keyboardShowHandler = (e) => {
+            this.zone.run(() => {
+              this.keyboardHeight = e.keyboardHeight;
+            });
+          }
+          window.addEventListener('native.keyboardshow', keyboardShowHandler);
+          const keyboardHideHandler = (e) => {
+            this.zone.run(() => {
+              this.keyboardHeight = 0;
+            });
+          }
+          window.addEventListener('native.keyboardhide', keyboardHideHandler);
+        }
+      })
   }
   goToNowPlaying() {
     let nowPlayingModal = this.modalCtrl.create(NowPlaying);
@@ -33,5 +56,35 @@ export class HomePage {
     if (goToNowPlaying) {
       this.goToNowPlaying();
     }
+  }
+  scrollTo(Y, duration, easingFunction, callback) {
+
+    var start = Date.now(),
+  	elem = document.querySelector('ion-card');
+  	let from = elem.scrollTop;
+
+    if(from === Y) {
+        callback();
+        return; /* Prevent scrolling to the Y point if already there */
+    }
+
+    let min = (a,b) => {
+    	return a<b?a:b;
+    }
+
+    let scroll = (timestamp) => {
+
+        var currentTime = Date.now(),
+            time = min(1, ((currentTime - start) / duration)),
+            easedT = easingFunction(time);
+
+        elem.scrollTop = (easedT * (Y - from)) + from;
+
+        if(time < 1) requestAnimationFrame(scroll);
+        else
+            if(callback) callback();
+    }
+
+    requestAnimationFrame(scroll)
   }
 }

@@ -1,8 +1,6 @@
-::-webkit-scrollbar, *::-webkit-scrollbar {
-  display: none;
-}
+
 .range-knob-handle {
-  transition: linear 1s all
+  transition: linear 1s all;
 }
 .statusbar-gap {
   height: 20px !important;
@@ -29,6 +27,14 @@
       }
 
   }
+  scroll-content {
+    overflow-y: hidden;
+  }
+  ion-card {
+    overflow-y: scroll;
+    margin-top: 3px;
+    transition: ease  height .3s;
+  }
 }
 .opaque .toolbar-background {
   // background-color: rgba(#f8f8f8, 0.55);
@@ -49,6 +55,8 @@ ion-footer.home.outer-footer {
     width: 4.5ch;
     color: #3D81F2;
     font-size: 10pt;
+    white-space: nowrap;
+    display: none;
   }
   .playing-in-list {
     background-color: #eee !important;
@@ -72,16 +80,60 @@ ion-footer.home.outer-footer {
     .inner-footer {
       background: rgba(255,255,255,.3);
       backdrop-filter: saturate(180%) blur(20px);
+      .current-track {
+        margin-top: -4px;
+
+      }
+      .make-big-button {
+        padding-bottom: 100px;
+        margin-bottom: -100px;
+        padding-top: 40px;
+        margin-top: -40px;
+      }
+      .item-range {
+        min-height: 0;
+        padding-left: 0;
+        overflow: visible;
+        #buffer {
+          background-color: #ddd;
+          margin-top: 0;
+        }
+        .item-inner {
+          padding-right: 0;
+          height: 4px;
+          .range-slider {
+            // height: 4px;
+          }
+          .range-knob-handle {
+            // display: none;
+            z-index: 2;
+            .range-knob {
+              background: rgb(61,129,242);
+            };
+          }
+          .range-bar:not(.range-bar-active) {
+            background: transparent;
+          }
+          .range-bar {
+            height: 4px;
+            margin-top: -2px;
+            transition: linear 1s all;
+          }
+        }
+      }
+
       ion-item {
         background: transparent;
         // color: #fff;
         ion-label {
           margin-right: 0px;
-          p {
+          p, h2 {
             text-overflow: ellipsis;
             overflow: hidden;
           }
         }
+
+
         .placeholder-art {
           font-size: 40pt;
           text-align: center;

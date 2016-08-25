@@ -5,54 +5,62 @@
   <button fab fab-bottom fab-center (click)="as.shareSong()"><ion-icon name="share-outline"></ion-icon></button>
 
   <ion-card>
-    <a (click)="playPause()">
-      <div *ngIf="buttonPressed && !as.playing" class='flash-paused'><ion-icon name="pause"></ion-icon></div>
-      <div *ngIf="buttonPressed && as.playing" class='flash-play'><ion-icon name="play"></ion-icon></div>
-      <ion-icon *ngIf="!as.nowPlayingSongMeta || !as.nowPlayingSongMeta.artwork"
-        name="musical-notes" class="placeholder-art"></ion-icon>
-      <img *ngIf="as.nowPlayingSongMeta && as.nowPlayingSongMeta.artwork"
-        [src]="as.nowPlayingSongMeta.artwork"/>
-    </a>
-  <ion-item class="progress-range" no-lines>
-    <ion-range min="0" [max]="as.duration" [ngModel]="as.currentTime"
-      (ngModelChange)="as.updateTime($event)">
-    </ion-range>
-  </ion-item>
-  <ion-row no-padding class="time-text">
-    <ion-col>
-      <span range-left>{{as.formatTime(as.currentTime)}}</span>
-    </ion-col>
-    <ion-col text-center>
-      <button *ngIf="as.shuffle" (click)="as.toggleShuffle()" small><ion-icon name="shuffle"></ion-icon></button>
-      <button outline *ngIf="!as.shuffle" (click)="as.toggleShuffle()" small><ion-icon name="shuffle"></ion-icon></button>
-      <button class="repeat-one" (click)="as.toggleRepeat()" *ngIf="as.repeatOne" small>1<ion-icon name="repeat"></ion-icon></button>
-      <button (click)="as.toggleRepeat()" *ngIf="as.repeatAll" small><ion-icon name="repeat"></ion-icon></button>
-      <button (click)="as.toggleRepeat()" *ngIf="!as.repeatAll && !as.repeatOne" outline small><ion-icon name="repeat"></ion-icon></button>
-    </ion-col>
-    <ion-col text-right>
-      <span range-right>{{as.formatTime(as.duration)}}</span>
-    </ion-col>
+    <ion-row responsive-sm no-padding>
+      <ion-col width-33 no-padding>
+        <a (click)="playPause()">
+          <div *ngIf="buttonPressed && !as.playing" class='flash-paused'><ion-icon name="pause"></ion-icon></div>
+          <div *ngIf="buttonPressed && as.playing" class='flash-play'><ion-icon name="play"></ion-icon></div>
+          <ion-icon *ngIf="!as.nowPlayingSongMeta || !as.nowPlayingSongMeta.artwork"
+            name="musical-notes" class="placeholder-art"></ion-icon>
+          <img *ngIf="as.nowPlayingSongMeta && as.nowPlayingSongMeta.artwork"
+            [src]="as.nowPlayingSongMeta.artwork"/>
+        </a>
+      </ion-col>
+    <ion-col width-67 no-padding>
+    <ion-item class="progress-range" no-lines>
+      <ion-range min="0" [max]="as.duration" [ngModel]="as.currentTime"
+        (ngModelChange)="as.updateTime($event)">
+        <div range-right id="buffer" [ngStyle]="{'width': (as.nowPlayingBufferedPercent ? (100 - as.nowPlayingBufferedPercent) : 100) + '%'}"></div>
+      </ion-range>
+    </ion-item>
+    <ion-row no-padding class="time-text">
+      <ion-col>
+        <span range-left>{{as.formatTime(as.currentTime)}}</span>
+      </ion-col>
+      <ion-col text-center>
+        <button *ngIf="as.shuffle" (click)="as.toggleShuffle()" small><ion-icon name="shuffle"></ion-icon></button>
+        <button outline *ngIf="!as.shuffle" (click)="as.toggleShuffle()" small><ion-icon name="shuffle"></ion-icon></button>
+        <button class="repeat-one" (click)="as.toggleRepeat()" *ngIf="as.repeatOne" small>1<ion-icon name="repeat"></ion-icon></button>
+        <button (click)="as.toggleRepeat()" *ngIf="as.repeatAll" small><ion-icon name="repeat"></ion-icon></button>
+        <button (click)="as.toggleRepeat()" *ngIf="!as.repeatAll && !as.repeatOne" outline small><ion-icon name="repeat"></ion-icon></button>
+      </ion-col>
+      <ion-col text-right>
+        <span range-right>-{{as.formatTime(as.duration - as.currentTime)}}</span>
+      </ion-col>
+    </ion-row>
+    <ion-card-content>
+      <ion-card-title>
+        {{as.nowPlayingSongMeta ? as.nowPlayingSongMeta.title : as.nowPlayingSong.title}}
+      </ion-card-title>
+        <p>
+          {{as.nowPlayingSongMeta ? as.nowPlayingSongMeta.artist : 'Unknown Artist'}} •
+          {{as.nowPlayingSongMeta ? as.nowPlayingSongMeta.albumTitle : 'Unknown Album'}}
+        </p>
+    </ion-card-content>
+    <ion-row no-padding>
+      <ion-col>
+        <button clear small (click)="as.back()"><ion-icon name="skip-backward"></ion-icon></button>
+      </ion-col>
+      <ion-col text-center>
+        <button clear small (click)="playPause()"><ion-icon [name]="as.playing ? 'pause' : 'play'"></ion-icon></button>
+      </ion-col>
+      <ion-col text-right>
+        <button clear small (click)="as.playNextSong()"><ion-icon name="skip-forward"></ion-icon></button>
+      </ion-col>
+    </ion-row>
+  </ion-col>
   </ion-row>
-  <ion-card-content>
-    <ion-card-title>
-      {{as.nowPlayingSongMeta ? as.nowPlayingSongMeta.title : as.nowPlayingSong.title}}
-    </ion-card-title>
-      <p>
-        {{as.nowPlayingSongMeta ? as.nowPlayingSongMeta.artist : 'Unknown Artist'}} •
-        {{as.nowPlayingSongMeta ? as.nowPlayingSongMeta.albumTitle : 'Unknown Album'}}
-      </p>
-  </ion-card-content>
-  <ion-row no-padding>
-    <ion-col>
-      <button clear small (click)="as.back()"><ion-icon name="skip-backward"></ion-icon></button>
-    </ion-col>
-    <ion-col text-center>
-      <button clear small (click)="playPause()"><ion-icon [name]="as.playing ? 'pause' : 'play'"></ion-icon></button>
-    </ion-col>
-    <ion-col text-right>
-      <button clear small (click)="as.playNextSong()"><ion-icon name="skip-forward"></ion-icon></button>
-    </ion-col>
-  </ion-row>
+
 </ion-card>
 </div>
 </ion-content>

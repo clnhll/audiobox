@@ -6,7 +6,7 @@ import {AudioService} from '../../common/AudioService';
 })
 export class NowPlaying {
   private buttonPressed: boolean = false;
-
+  private buttonTimeout: any;
   constructor(
     private navCtrl: NavController,
     private as: AudioService,
@@ -19,8 +19,12 @@ export class NowPlaying {
 
   playPause() {
     this.buttonPressed = true;
+    if (this.buttonTimeout) {
+      clearTimeout(this.buttonTimeout);
+      this.buttonTimeout = false;
+    }
     this.as.playPause();
-    setTimeout(() => {
+    this.buttonTimeout = setTimeout(() => {
       this.buttonPressed = false;
     }, 3000)
   }
