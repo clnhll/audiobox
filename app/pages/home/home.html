@@ -15,9 +15,12 @@
 <ion-card [ngStyle]="{'height':'calc(100vh - ' + ((as.nowPlayingSongMeta ? 170 : 90) + keyboardHeight) + 'px)'}">
   <ion-card-content no-padding>
   <ion-list no-lines>
-  <button ion-item no-lines [ngClass]="{'playing-in-list': as.nowPlayingSong && as.nowPlayingSong.path === song.path}" *ngFor="let song of as.songs" (click)="playSong(song, true)">
-    <h3>{{song.title}}</h3>
-    <p>{{song.path}}</p>
+  <button ion-item no-lines
+    [ngClass]="{'playing-in-list': as.nowPlayingSong && as.nowPlayingSong.path === song.path}"
+    *ngFor="let song of as.songs"
+    (click)="playSong(song, true)">
+    <h3>{{song.title || song.name}}</h3>
+    <p>{{song.path || song.fullPath}}</p>
   </button>
 </ion-list>
 </ion-card-content>

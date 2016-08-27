@@ -6,10 +6,13 @@ declare var jsmediatags: any;
 declare var plugins: any;
 declare var NowPlaying: any;
 declare var RemoteCommand: any;
+declare var DirectoryReader: any;
+declare var ID3: any;
 
 @Injectable()
 export class AudioService {
 
+  public useLocal: boolean = false;
   public nowPlaying: any;
   public bufferedSong: any;
   public currentTime: number;
@@ -48,9 +51,6 @@ export class AudioService {
       });
       loading.present();
     }
-    // if (!this.nowPlaying) {
-
-    // }
     platform.ready().then(() => {
       this.authenticate()
         .then(this.getAllSongs.bind(this))
@@ -75,6 +75,7 @@ export class AudioService {
   }
 
   authenticate() {
+    if (this.useLocal) return Promise.resolve(true);
     return new Promise((resolve, reject) => {
       this.platform.ready().then(() => {
         var client = new Dropbox.Client({key: "0hamg1r92zjn9sc"});
@@ -94,7 +95,21 @@ export class AudioService {
     });
   }
 
-  getAllSongs() {
+  getAllSongs(): any {
+    if (this.useLocal && (<any>window).plugins) {
+      return new Promise((resolve, reject) => {
+        let dir = new DirectoryReader(cordova.file.documentsDirectory);
+        dir.readEntries(res => {
+          resolve(res);
+        }, reject);
+      }).then((res) => {
+        this.songs = res;
+        this.songsBackup = [...<any>res];
+        this.queue = res;
+        this.queueBackup = [...<any>res];
+        (<any>window).songs = res;
+      });
+    }
     return Promise.all(['mp3', 'wav', 'm4a'].map(type =>
       new Promise((resolve, reject) => {
         this.db.search('', type, (err, res) => {
@@ -110,13 +125,14 @@ export class AudioService {
       let paths = this.songs.map(song => song.path);
       this.songs = this.songs.concat(format
           .filter(song => song.isFile && !paths.includes(song.path))
-          .map((song) => ({
+          .map((song) => Object.assign(song, {
             title: song.path.split('/').reverse()[0].replace('.mp3', '').replace('.wav', '').replace('.m4a', ''),
             path: song.path,
             isFile: song.isFile
           }))
           .sort((a, b) => a.path < b.path ? -1 : 1)
         );
+        (<any>window).songs = this.songs;
     });
     this.queue = this.shuffle ? this.shuffleSongs() : this.songs;
     this.songsBackup = [...this.songs];
@@ -126,6 +142,9 @@ export class AudioService {
 
   getSongUrl(song) {
     let path = song.path;
+    if (this.useLocal) {
+      return Promise.resolve(song.toURL());
+    }
     return new Promise((resolve, reject) => {
       this.db.makeUrl(path, {download: true}, (err, res) => {
         if (err) reject(err);
