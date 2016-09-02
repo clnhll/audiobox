@@ -1,13 +1,13 @@
 #buffer {
   position: absolute;
   right: 0;
-  background-color: #fff;
-  z-index: 1;
+  background-color: #ddd;
+  z-index: 1 !important;
   height: 4px;
   margin-top: 21px;
-  -webkit-transition: 1s ease all;
-  transition: 2s ease all;
-  // width: 40% !important;
+  // transition: 1s ease all;
+  width: 100%;
+  transform-origin-x: right;
 }
 @-webkit-keyframes zoomOut {
   from {
@@ -50,13 +50,19 @@
     }
 }
 .now-playing {
+  .range-slider {
+    transform: translateZ(0);
+  }
   .range-bar {
     height: 4px;
-    transition: linear 1s all;
-    
+    // transition: linear 1s all;
+    &:not(.range-bar-active) {
+      background-color: white;
+    }
   }
   .range-knob-handle {
-    z-index:2;
+    transform: translateZ(0);
+    z-index:2 !important;
   }
 
   .range-knob {

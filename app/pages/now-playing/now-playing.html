@@ -20,7 +20,8 @@
     <ion-item class="progress-range" no-lines>
       <ion-range min="0" [max]="as.duration" [ngModel]="as.currentTime"
         (ngModelChange)="as.updateTime($event)">
-        <div range-right id="buffer" [ngStyle]="{'width': (as.nowPlayingBufferedPercent ? (100 - as.nowPlayingBufferedPercent) : 100) + '%'}"></div>
+        <div range-right id="buffer" [ngStyle]="{
+          'transform': 'scale3d(' + (as.nowPlayingBufferedPercent ? (1 - as.nowPlayingBufferedPercent / 100) : 0) + ', 1, 1)'}"></div>
       </ion-range>
     </ion-item>
     <ion-row no-padding class="time-text">

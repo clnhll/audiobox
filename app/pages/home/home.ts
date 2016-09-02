@@ -1,5 +1,5 @@
 import {Component, NgZone} from '@angular/core';
-import {NavController, Platform, ModalController, Content} from 'ionic-angular';
+import {NavController, Platform, ModalController, Content, ActionSheetController, LoadingController} from 'ionic-angular';
 import {AudioService} from '../../common/AudioService';
 import {NowPlaying} from '../now-playing/now-playing';
 declare function require(path: string): any;
@@ -16,33 +16,35 @@ export class HomePage {
     private platform: Platform,
     private as: AudioService,
     private modalCtrl: ModalController,
-    private zone: NgZone
+    private zone: NgZone,
+    private actionSheetCtrl: ActionSheetController,
+    private loadingCtrl: LoadingController
   ) {
-      as.onSongChange = (() => {
-        setTimeout(() => {
-          var target = document.querySelector(".playing-in-list");
-          this.scrollTo((<any>target).offsetTop - 100,
-            350, this.easeInOutQuad,() => {});
-        }, 200)
-
-      });
+      // as.onSongChange = (() => {
+      //   setTimeout(() => {
+      //     var target = document.querySelector(".playing-in-list");
+      //     this.scrollTo((<any>target).offsetTop - 100,
+      //       350, this.easeInOutQuad,() => {});
+      //   }, 200)
+      //
+      // });
       platform.ready().then(() => {
         if ((<any>window).plugins) {
-          window.addEventListener('statusTap', () => {
-            this.scrollTo(0, 350,this.easeInOutQuad, () => {});
-          });
-          const keyboardShowHandler = (e) => {
-            this.zone.run(() => {
-              this.keyboardHeight = e.keyboardHeight;
-            });
-          }
-          window.addEventListener('native.keyboardshow', keyboardShowHandler);
-          const keyboardHideHandler = (e) => {
-            this.zone.run(() => {
-              this.keyboardHeight = 0;
-            });
-          }
-          window.addEventListener('native.keyboardhide', keyboardHideHandler);
+          // window.addEventListener('statusTap', () => {
+          //   this.scrollTo(0, 350,this.easeInOutQuad, () => {});
+          // });
+          // const keyboardShowHandler = (e) => {
+          //   this.zone.run(() => {
+          //     this.keyboardHeight = e.keyboardHeight;
+          //   });
+          // }
+          // window.addEventListener('native.keyboardshow', keyboardShowHandler);
+          // const keyboardHideHandler = (e) => {
+          //   this.zone.run(() => {
+          //     this.keyboardHeight = 0;
+          //   });
+          // }
+          // window.addEventListener('native.keyboardhide', keyboardHideHandler);
         }
       })
   }
@@ -60,7 +62,7 @@ export class HomePage {
   scrollTo(Y, duration, easingFunction, callback) {
 
     var start = Date.now(),
-  	elem = document.querySelector('ion-card');
+  	elem = document.querySelector('scroll-content');
   	let from = elem.scrollTop;
 
     if(from === Y) {
@@ -86,5 +88,60 @@ export class HomePage {
     }
 
     requestAnimationFrame(scroll)
+  }
+  options() {
+    let actionSheet = this.actionSheetCtrl.create({
+      title: 'Dropbox Options',
+      buttons: [
+        {
+          text: 'Logout',
+          role: 'destructive',
+          handler: () => {
+            this.as.logout();
+          }
+        },{
+          text: 'Refresh Songs',
+          handler: () => {
+            let loading = this.loadingCtrl.create({
+              content: 'Loading...'
+            });
+            loading.present();
+
+            this.as.getAllSongs().then(() => {
+              loading.dismiss();
+            });
+          }
+        },{
+          text: 'Cancel',
+          role: 'cancel',
+          handler: () => {
+            console.log('Cancel clicked');
+          }
+        }
+      ],
+    });
+    actionSheet.present();
+  }
+  playNext(song) {
+    let actionSheet = this.actionSheetCtrl.create({
+      title: song.title,
+      buttons: [
+        {
+          text: 'Play this next',
+          handler: () => {
+            console.log(song);
+            this.as.playNextInQueue(song);
+          }
+        },{
+          text: 'Cancel',
+          role: 'cancel',
+          handler: () => {
+            console.log('Cancel clicked');
+          }
+        }
+      ],
+      enableBackdropDismiss: false,
+    });
+    actionSheet.present();
   }
 }

@@ -5,6 +5,9 @@
 <ion-content fullscreen class="home" [ngStyle]="{'background-image': as.nowPlayingSongMeta && as.nowPlayingSongMeta.artwork ?
 'url(\'' + as.nowPlayingSongMeta?.artwork + '\')' : ''}">
 <ion-toolbar no-border-top no-border-bottom>
+  <ion-buttons start>
+    <button (click)="options()"><ion-icon name="settings"></ion-icon></button>
+  </ion-buttons>
   <ion-searchbar
     [(ngModel)]="as.filterQuery"
     [showCancelButton]="true"
@@ -12,15 +15,17 @@
     (ionCancel)="as.clearFilter($event)">
   </ion-searchbar>
 </ion-toolbar>
-<ion-card [ngStyle]="{'height':'calc(100vh - ' + ((as.nowPlayingSongMeta ? 170 : 90) + keyboardHeight) + 'px)'}">
+<ion-card [virtualScroll]="as.songs">
   <ion-card-content no-padding>
   <ion-list no-lines>
-  <button ion-item no-lines
+  <button ion-item no-lines *virtualItem="let song"
     [ngClass]="{'playing-in-list': as.nowPlayingSong && as.nowPlayingSong.path === song.path}"
-    *ngFor="let song of as.songs"
-    (click)="playSong(song, true)">
-    <h3>{{song.title || song.name}}</h3>
-    <p>{{song.path || song.fullPath}}</p>
+    (click)="playSong(song, true)"
+    (press)="playNext(song)">
+    <!-- *ngFor="let song of as.songs" -->
+
+    <h3>{{song.title}}</h3>
+    <p>{{song.path}}</p>
   </button>
 </ion-list>
 </ion-card-content>
@@ -34,7 +39,8 @@
           (ngModelChange)="as.updateTime($event)">
           <!-- <span range-left class="time-text">{{as.formatTime(as.currentTime)}}</span>
           <span range-right class="time-text">-{{as.formatTime(as.duration - as.currentTime)}}</span> -->
-          <div range-right id="buffer" [ngStyle]="{'width': (as.nowPlayingBufferedPercent ? (100 - as.nowPlayingBufferedPercent) : 100) + '%'}"></div>
+          <div range-right id="buffer" [ngStyle]="{'transform': 'scale3d(' + (as.nowPlayingBufferedPercent ? (1 - as.nowPlayingBufferedPercent / 100) : 0) + ', 1, 1)'}"></div>
+
 
         </ion-range>
       </ion-item>

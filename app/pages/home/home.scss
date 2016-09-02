@@ -1,6 +1,5 @@
-
-.range-knob-handle {
-  transition: linear 1s all;
+.range-knob-handle, .range-bar {
+  // transition: linear 1s all;
 }
 .statusbar-gap {
   height: 20px !important;
@@ -25,15 +24,13 @@
         background: transparent;
         // background-color: rgba(255,255,255,.3);
       }
+  }
 
-  }
-  scroll-content {
-    overflow-y: hidden;
-  }
   ion-card {
-    overflow-y: scroll;
+    // overflow-y: scroll;
     margin-top: 3px;
-    transition: ease  height .3s;
+    margin-bottom: 100px;
+    // transition: ease height .3s;
   }
 }
 .opaque .toolbar-background {
@@ -80,6 +77,8 @@ ion-footer.home.outer-footer {
     .inner-footer {
       background: rgba(255,255,255,.3);
       backdrop-filter: saturate(180%) blur(20px);
+      .range-slider {
+      }
       .current-track {
         margin-top: -4px;
 
@@ -105,6 +104,7 @@ ion-footer.home.outer-footer {
             // height: 4px;
           }
           .range-knob-handle {
+            transform: translateZ(0);
             // display: none;
             z-index: 2;
             .range-knob {
@@ -117,7 +117,7 @@ ion-footer.home.outer-footer {
           .range-bar {
             height: 4px;
             margin-top: -2px;
-            transition: linear 1s all;
+            // transition: linear 1s all;
           }
         }
       }

@@ -12,7 +12,6 @@ declare var ID3: any;
 @Injectable()
 export class AudioService {
 
-  public useLocal: boolean = false;
   public nowPlaying: any;
   public bufferedSong: any;
   public currentTime: number;
@@ -42,6 +41,7 @@ export class AudioService {
   public filterQuery: string = '';
   private bufferedSongUrl: string;
   public onSongChange: any = () => {};
+  private selectedNextSong: any;
 
   constructor(private platform: Platform, private zone: NgZone, private loadingCtrl: LoadingController) {
     let loading: any = false;
@@ -73,12 +73,28 @@ export class AudioService {
       });
     });
   }
-
+  logout() {
+    localStorage.removeItem('db-songs');
+    localStorage.removeItem('shuffle');
+    localStorage.removeItem('repeatAll');
+    localStorage.removeItem('repeatOne');
+    this.db.signOut((r) => {
+      let loading = this.loadingCtrl.create({
+        content: 'Loading...'
+      });
+      loading.present();
+      this.authenticate()
+        .then(this.getAllSongs.bind(this))
+        .then(() => {
+          if (loading) loading.dismiss();
+        });
+    });
+  }
   authenticate() {
-    if (this.useLocal) return Promise.resolve(true);
     return new Promise((resolve, reject) => {
       this.platform.ready().then(() => {
         var client = new Dropbox.Client({key: "0hamg1r92zjn9sc"});
+        (<any>window).client = client;
           client.authDriver((<any>window).cordova ?
           new Dropbox.AuthDriver.Cordova() :
           new Dropbox.AuthDriver.Redirect());
@@ -96,20 +112,6 @@ export class AudioService {
   }
 
   getAllSongs(): any {
-    if (this.useLocal && (<any>window).plugins) {
-      return new Promise((resolve, reject) => {
-        let dir = new DirectoryReader(cordova.file.documentsDirectory);
-        dir.readEntries(res => {
-          resolve(res);
-        }, reject);
-      }).then((res) => {
-        this.songs = res;
-        this.songsBackup = [...<any>res];
-        this.queue = res;
-        this.queueBackup = [...<any>res];
-        (<any>window).songs = res;
-      });
-    }
     return Promise.all(['mp3', 'wav', 'm4a'].map(type =>
       new Promise((resolve, reject) => {
         this.db.search('', type, (err, res) => {
@@ -125,7 +127,7 @@ export class AudioService {
       let paths = this.songs.map(song => song.path);
       this.songs = this.songs.concat(format
           .filter(song => song.isFile && !paths.includes(song.path))
-          .map((song) => Object.assign(song, {
+          .map((song) => ({
             title: song.path.split('/').reverse()[0].replace('.mp3', '').replace('.wav', '').replace('.m4a', ''),
             path: song.path,
             isFile: song.isFile
@@ -134,7 +136,9 @@ export class AudioService {
         );
         (<any>window).songs = this.songs;
     });
-    this.queue = this.shuffle ? this.shuffleSongs() : this.songs;
+    if (this.filterQuery ===  '') {
+      this.queue = this.shuffle ? this.shuffleSongs() : this.songs;
+    }
     this.songsBackup = [...this.songs];
     this.queueBackup = [...this.queue];
     localStorage.setItem('db-songs', JSON.stringify(this.songs));
@@ -142,9 +146,6 @@ export class AudioService {
 
   getSongUrl(song) {
     let path = song.path;
-    if (this.useLocal) {
-      return Promise.resolve(song.toURL());
-    }
     return new Promise((resolve, reject) => {
       this.db.makeUrl(path, {download: true}, (err, res) => {
         if (err) reject(err);
@@ -186,6 +187,9 @@ export class AudioService {
       metaPromise.then(this.setLockScreenInfo.bind(this));
       this.nowPlaying.onplaying = null;
     }
+    this.nowPlaying.onerror = () => {
+      this.playNextSong();
+    }
     this.nowPlaying.src = url;
     this.nowPlaying.load();
     this.nowPlaying.play();
@@ -195,9 +199,12 @@ export class AudioService {
   }
 
   playNextSong() {
-    if (this.bufferedSong) {
+    if (this.bufferedSong && this.bufferedSong.readyState) {
       this.nowPlayingIndex++;
       this.playBufferedSong();
+      if (this.selectedNextSong) {
+        delete this.selectedNextSong;
+      }
       return;
     }
     if (this.canPlayNextSong()) {
@@ -270,10 +277,15 @@ export class AudioService {
       this.bufferedSongInfo = this.getNextSongToPlay();
       this.getSongUrl(this.bufferedSongInfo).then(url => {
         this.bufferedSongUrl = <string>url;
-        let x = new Audio;
-        x.src = <string>url;
-        x.load();
-        this.bufferedSong = x;
+        this.bufferedSong = new Audio;
+        this.bufferedSong.onerror = () => {
+          delete this.bufferedSong;
+          delete this.bufferedSongUrl;
+          delete this.bufferedSongInfo;
+          delete this.bufferedMetadataPromise;
+        }
+        this.bufferedSong.src = <string>url;
+        this.bufferedSong.load();
         this.bufferedMetadataPromise = this.getMeta(url, true);
       });
     } else {
@@ -340,6 +352,7 @@ export class AudioService {
   filterQueue(event) {
     if (!event.target.value || event.target.value === '') {
       this.clearFilter();
+
     } else {
       let filteredSongs = this.songsBackup.filter(song =>
         song.path.toLowerCase().includes(event.target.value.toLowerCase()));
@@ -347,6 +360,9 @@ export class AudioService {
       this.queue = this.queueBackup.filter(song =>
         song.path.toLowerCase().includes(event.target.value.toLowerCase()));
       this.songs = filteredSongs;
+    }
+    if (this.selectedNextSong) {
+      this.playNextInQueue(this.selectedNextSong, false);
     }
   }
 
@@ -359,15 +375,21 @@ export class AudioService {
   setUpTimeTracking() {
     if (this.checkInterval) {
       clearInterval(this.checkInterval);
+      // window.cancelAnimationFrame(this.checkInterval);
     }
     this.checkInterval = setInterval(() => {
+
+    // let update = () => {
       if (this.nowPlaying && !this.nowPlaying.paused) {
         this.playing = !this.nowPlaying.paused;
         this.currentTime = this.nowPlaying.currentTime;
         this.duration = this.nowPlaying.duration;
         this.nowPlayingBufferedPercent = this.nowPlaying.buffered.length ? 100 * (this.nowPlaying.buffered.end(0) / this.duration) : 0;
       }
-    });
+      // this.checkInterval = requestAnimationFrame(update);
+    // }
+  }, 1000);
+    // update();
   }
 
   updateTime(x) {
@@ -486,6 +508,17 @@ export class AudioService {
         playbackDuration: this.nowPlaying.duration
       }, x));
     }, 500);
+  }
+  playNextInQueue(song, buffer = true) {
+    this.selectedNextSong = song;
+    this.queue.splice(this.nowPlayingIndex + 1, 0, song);
+    if (buffer) {
+      delete this.bufferedSong;
+      delete this.bufferedSongInfo;
+      delete this.bufferedSongUrl;
+      delete this.bufferedMetadataPromise;
+      this.bufferNext();
+    }
   }
 
 }
